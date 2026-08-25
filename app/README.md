@@ -48,12 +48,35 @@ question, drag-and-drop that works with a finger (or tap-an-object then
 tap-a-basket), and layouts that reflow from phone to desktop. Sound is a toggle
 in the top bar, and `prefers-reduced-motion` is respected.
 
+## Tests
+
+```bash
+node test/questions.test.js      # the maths, head-less, no dependencies
+node test/browser.test.js        # the real app in headless Chromium
+```
+
+`questions.test.js` generates thousands of questions across every grade and
+level and checks that each one's stated answer survives its own checker, that
+the arithmetic in each equation is right, that no multiple-choice question
+repeats an option, that every question can explain itself when answered wrong,
+and that a 10-question round never asks the same thing twice.
+
+`browser.test.js` loads the app from `file://`, mounts every picture type and
+question card, plays a lesson through to completion, checks that a wrong answer
+coaches rather than scolds, solves a drag-and-drop question three ways (pointer,
+tap, keyboard), and asserts no sideways scrolling or sub-40px tap targets at
+390 / 820 / 1280px.
+
+Both fail loudly: breaking a generator's answer or the drag keyboard handler
+makes them exit non-zero.
+
 ## Code layout
 
 ```
 app/
 ├── index.html          page shell
 ├── css/styles.css      the whole classroom theme
+├── test/               generator sweep + browser smoke test
 └── js/
     ├── util.js         DOM helpers, number parsing, sound, confetti, toasts
     ├── state.js        progress + unlocks, saved to localStorage

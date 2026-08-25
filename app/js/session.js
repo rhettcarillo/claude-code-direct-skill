@@ -23,8 +23,15 @@ window.Session = (function () {
     var selected = null;
     var ghost = null;
 
+    var itemName = spec.itemName || 'object';
+    var boxName = spec.boxLabel || 'group';
+
     function makeTok(i) {
-      var t = el('span', { class: 'drag-tok', text: spec.emoji, 'aria-hidden': 'true', dataset: { i: String(i) } });
+      var t = el('button', {
+        class: 'drag-tok', type: 'button', text: spec.emoji,
+        'aria-label': itemName + ' ' + (i + 1),
+        dataset: { i: String(i) }
+      });
       wireToken(t);
       return t;
     }
@@ -71,10 +78,7 @@ window.Session = (function () {
     }
 
     function wireToken(t) {
-      var dragging = false, moved = false;
-
-      /* taps on tokens are handled above; never let them reach a container */
-      t.addEventListener('click', function (e) { e.stopPropagation(); });
+      var dragging = false, moved = false, suppressClick = false;
 
       t.addEventListener('pointerdown', function (e) {
         dragging = true; moved = false;
@@ -102,19 +106,39 @@ window.Session = (function () {
         if (ghost) { ghost.remove(); ghost = null; }
         t.style.opacity = '';
         highlight(null);
-        if (moved) drop(t, containerAt(e.clientX, e.clientY));
-        else tapToken(t);
+        if (moved) {
+          suppressClick = true;                 /* the drag already placed it */
+          drop(t, containerAt(e.clientX, e.clientY));
+        }
       }
       t.addEventListener('pointerup', finish);
       t.addEventListener('pointercancel', finish);
+
+      /* Taps land here — and so do Enter and Space, because the token is a
+         real button. That gives the whole activity a keyboard path. */
+      t.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (suppressClick) { suppressClick = false; return; }
+        tapToken(t);
+      });
     }
 
-    function wireTarget(node) {
-      node.addEventListener('click', function () {
+    function wireTarget(node, label) {
+      node.setAttribute('tabindex', '0');
+      node.setAttribute('role', 'button');
+      node.setAttribute('aria-label', label);
+      function place() {
         if (!selected) return;
         selected.classList.remove('is-selected');
         drop(selected, node);
         selected = null;
+      }
+      node.addEventListener('click', place);
+      node.addEventListener('keydown', function (e) {
+        /* only when the container itself has focus — otherwise this would
+           swallow the Enter that activates a token button inside it */
+        if (e.target !== node) return;
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); place(); }
       });
     }
 
@@ -125,16 +149,19 @@ window.Session = (function () {
       var count = el('span', { class: 'gb-label', text: '0' });
       var box = el('div', { class: 'group-box' }, [el('div', { class: 'gb-items' }), count]);
       box._count = count;
-      wireTarget(box);
+      box._index = g + 1;
+      wireTarget(box, 'Put the chosen ' + itemName + ' in ' + boxName + ' ' + (g + 1));
       boxes.push(box);
       boxRow.appendChild(box);
     }
-    wireTarget(pool);
+    wireTarget(pool, 'Put the chosen ' + itemName + ' back with the spare ones');
 
     function refreshCounts() {
       boxes.forEach(function (b) {
         var n = b.querySelectorAll('.drag-tok').length;
         b._count.textContent = String(n);
+        b.setAttribute('aria-label', boxName + ' ' + b._index + ', ' + n + ' ' +
+          U.plural(n, itemName, itemName + 's') + '. Press Enter to put the chosen one here.');
         b.classList.remove('is-ok', 'is-bad');
       });
     }
@@ -157,7 +184,8 @@ window.Session = (function () {
     }
 
     var node = el('div', { class: 'drag-area' }, [
-      el('div', { class: 'drag-help', text: 'Drag the ' + spec.emoji + ' into the ' + (spec.boxLabel || 'group') + 's — or tap one, then tap where it goes.' }),
+      el('div', { class: 'drag-help', text: 'Drag the ' + spec.emoji + ' into the ' + boxName + 's — or tap one, then tap where it goes.' }),
+      el('div', { class: 'sr-only', text: 'Using a keyboard: tab to an object and press Enter to pick it up, then tab to a ' + boxName + ' and press Enter to put it there.' }),
       pool,
       boxRow
     ]);

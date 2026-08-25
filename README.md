@@ -102,6 +102,13 @@ Things this file does on purpose, which you may want to steal:
   the run — which converts a frustration into a reported signal.
 - **Learning is gated on falsification, not on activity.** This is the whole trick.
 
+## Also in this repo
+
+[`app/`](app/) — **Division Adventure**, a colourful Grade 1–6 division learning
+app built in a `/direct` session. No build step: open `app/index.html`. Six
+learning paths, 18 lessons, ~40 question generators, an interactive long-division
+widget, and a checked-in test suite that drives the real thing in a browser.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

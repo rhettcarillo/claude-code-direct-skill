@@ -39,9 +39,25 @@ window.Curriculum = (function () {
     return o;
   }
 
-  function mcOf(correct, wrongs) {
-    var order = U.shuffle([correct].concat(wrongs));
-    return { choices: order.map(String), answerIndex: order.map(String).indexOf(String(correct)) };
+  /* Build multiple-choice options that are always distinct — a repeated
+     option is confusing, and with small Grade 1 numbers the obvious
+     distractors collide often. */
+  function mcOf(correct, wrongs, pad) {
+    var right = String(correct);
+    var out = [];
+    (wrongs || []).forEach(function (w) {
+      var sw = String(w);
+      if (sw !== right && out.indexOf(sw) === -1) out.push(sw);
+    });
+    var base = Number(correct);
+    var i = 1;
+    while (out.length < 3 && i < 60) {
+      var cand = pad ? String(pad(i)) : (isFinite(base) ? String(base + i + 1) : right + ' ' + i);
+      if (cand !== right && out.indexOf(cand) === -1) out.push(cand);
+      i++;
+    }
+    var order = U.shuffle([right].concat(out.slice(0, 3)));
+    return { choices: order, answerIndex: order.indexOf(right) };
   }
 
   var THEMES = Questions.THEMES;
@@ -150,12 +166,16 @@ window.Curriculum = (function () {
         answer: 'Fair sharing = every group is the same size'
       },
       tryIt: function () {
-        var t = th(), per = ri(2, 4), groups = 3;
+        var t = th(), per = ri(2, 4);
         var good = [per, per, per];
-        var bad = [per + 1, per, Math.max(1, per - 1)];
-        var order = U.shuffle([{ set: good, ok: true }, { set: bad, ok: false }]);
-        var labels = ['A', 'B'];
-        var ansIdx = order[0].ok ? 0 : 1;
+        var bad1 = [per + 1, per, per];                     /* one group too big */
+        var bad2 = [per, Math.max(1, per - 1), per];        /* one group too small */
+        var order = U.shuffle([
+          { set: good, ok: true }, { set: bad1, ok: false }, { set: bad2, ok: false }
+        ]);
+        var labels = ['A', 'B', 'C'];
+        var ansIdx = 0;
+        order.forEach(function (o, i) { if (o.ok) ansIdx = i; });
         return mkQ({
           mode: 'mc', kindLabel: 'Equal groups',
           prompt: 'Which one shows EQUAL groups?',
@@ -167,7 +187,7 @@ window.Curriculum = (function () {
             lines: ['Count each group carefully.',
               'Equal groups all hold the same number — here that is ' + per + '.',
               'The other picture has a group with a different amount, so it is not fair.'],
-            visual: { kind: 'compare', emoji: t.e, sets: [good, bad], labels: ['Equal ✅', 'Not equal ❌'] }
+            visual: { kind: 'compare', emoji: t.e, sets: [good, bad1], labels: ['Equal ✅', 'Not equal ❌'] }
           }
         });
       }

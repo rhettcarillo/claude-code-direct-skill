@@ -76,12 +76,21 @@ window.Challenge = (function () {
     var m = MODES.filter(function (x) { return x.id === modeId; })[0] || MODES[0];
     var gradeId = Progress.currentGrade();
 
+    /* Pre-build the bank so a challenge never repeats a question either.
+       The ladder climbs through all three levels in equal steps. */
+    var bank;
+    if (m.ladder) {
+      var leg = Math.ceil(m.count / 3);
+      var seen = {};            /* shared, so the legs stay distinct from each other */
+      bank = Questions.makeRound(gradeId, 'easy', leg, seen)
+        .concat(Questions.makeRound(gradeId, 'medium', leg, seen))
+        .concat(Questions.makeRound(gradeId, 'challenge', m.count - 2 * leg, seen));
+    } else {
+      bank = Questions.makeRound(gradeId, m.difficulty, m.count);
+    }
+
     function question(i) {
-      var diff = m.difficulty;
-      if (m.ladder) {
-        diff = i < 4 ? 'easy' : i < 8 ? 'medium' : 'challenge';
-      }
-      return Questions.make(gradeId, diff);
+      return bank[i] || Questions.make(gradeId, m.difficulty);
     }
 
     var runner = Session.Runner({

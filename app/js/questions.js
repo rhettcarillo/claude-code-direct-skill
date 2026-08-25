@@ -179,7 +179,7 @@ window.Questions = (function () {
       type: 'drag', mode: 'drag',
       kindLabel: 'Drag & share',
       prompt: 'Share the ' + total + ' ' + t.many + ' fairly between the ' + groups + ' ' + w.many + '.',
-      drag: { total: total, groups: groups, per: per, emoji: t.e, boxLabel: t.box },
+      drag: { total: total, groups: groups, per: per, emoji: t.e, boxLabel: t.box, itemName: t.one },
       answer: { groups: groups, per: per, total: total },
       hint: 'Fair means every basket has the SAME number. Try one at a time, going round and round.',
       tags: ['drag', 'share'],
@@ -409,7 +409,7 @@ window.Questions = (function () {
       type: 'drag', mode: 'drag',
       kindLabel: 'Drag & group',
       prompt: 'Put the ' + total + ' ' + t.many + ' into ' + groups + ' equal ' + t.boxes + ', then check.',
-      drag: { total: total, groups: groups, per: per, emoji: t.e, boxLabel: t.box },
+      drag: { total: total, groups: groups, per: per, emoji: t.e, boxLabel: t.box, itemName: t.one },
       answer: { groups: groups, per: per, total: total },
       hint: 'Try ' + total + ' ÷ ' + groups + ' in your head first, then move that many into each ' + t.box + '.',
       tags: ['drag'],
@@ -1232,19 +1232,37 @@ window.Questions = (function () {
     return q;
   }
 
-  /* A round with variety: avoids three identical question types in a row. */
-  function makeRound(grade, difficulty, count) {
+  /* The text of a question, used to keep a round free of repeats. */
+  function signature(q) {
+    return q.prompt + '|' + (q.story || '') + '|' + ((q.equation && q.equation.text) || '');
+  }
+
+  /* A round with variety: no repeated question, and never three of the same
+     kind in a row. Pass a shared `seen` map to keep several legs distinct
+     from each other. Falls back gracefully if a pool is too small to fill. */
+  function makeRound(grade, difficulty, count, seen) {
     var out = [];
+    seen = seen || {};          /* callers may share this across several legs */
     var lastType = null, lastLast = null;
     var guard = 0;
-    while (out.length < count && guard < count * 30) {
+    while (out.length < count && guard < count * 40) {
       guard++;
       var q = make(grade, difficulty);
+      var key = signature(q);
+      if (seen[key]) continue;
       if (q.type === lastType && q.type === lastLast) continue;
-      lastLast = lastType; lastType = q.type;
+      seen[key] = true;
+      lastLast = lastType;
+      lastType = q.type;
       out.push(q);
     }
-    while (out.length < count) out.push(make(grade, difficulty));
+    /* pathological small pool: take whatever is least repetitive */
+    while (out.length < count) {
+      var best = make(grade, difficulty);
+      for (var t = 0; t < 12 && seen[signature(best)]; t++) best = make(grade, difficulty);
+      seen[signature(best)] = true;
+      out.push(best);
+    }
     return out;
   }
 
@@ -1273,6 +1291,7 @@ window.Questions = (function () {
   return {
     make: make,
     makeRound: makeRound,
+    signature: signature,
     check: check,
     answerLabel: answerLabel,
     THEMES: THEMES,
