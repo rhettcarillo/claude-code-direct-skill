@@ -1,0 +1,3 @@
+# Per-page rasters are regenerable: `python3 build.py out`
+out/*.png
+__pycache__/
