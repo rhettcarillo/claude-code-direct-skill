@@ -18,6 +18,7 @@ import pages_a
 import pages_b
 import pages_c
 import pages_d
+import pages_e
 
 PAGES = [
     ("01_cover", "Cover", pages_a.cover),
@@ -37,10 +38,18 @@ PAGES = [
     ("15_big_tree", "The old tree", pages_c.big_tree),
     ("16_draw_your_own", "Draw your own", pages_c.draw_your_own),
     ("17_popcorn_shop", "Popcorn shop", pages_d.popcorn_shop),
+    ("18_blanket_fort", "Blanket fort", pages_e.blanket_fort),
+    ("19_bakery", "Bakery", pages_e.bakery),
+    ("20_ice_cream", "Ice cream parlor", pages_e.ice_cream),
+    ("21_boba_bar", "Boba tea bar", pages_e.boba_bar),
 ]
 
 # Pages that also get their own single-page PDF, for printing on their own.
 STANDALONE = {"17_popcorn_shop": "popcorn-shop-coloring-page.pdf"}
+
+# The packed, hand-inked scenes, kept together as their own booklet.
+SCENES = ["17_popcorn_shop", "18_blanket_fort", "19_bakery",
+          "20_ice_cream", "21_boba_bar"]
 
 
 def main():
@@ -48,6 +57,7 @@ def main():
     os.makedirs(outdir, exist_ok=True)
 
     writer = PdfWriter()
+    scenes = PdfWriter()
     for name, title, fn in PAGES:
         svg = fn()
         with open(os.path.join(outdir, name + ".svg"), "w") as fh:
@@ -56,6 +66,8 @@ def main():
                          write_to=os.path.join(outdir, name + ".png"))
         pdf_bytes = cairosvg.svg2pdf(bytestring=svg.encode())
         writer.append(io.BytesIO(pdf_bytes))
+        if name in SCENES:
+            scenes.append(io.BytesIO(pdf_bytes))
         if name in STANDALONE:
             with open(os.path.join(outdir, STANDALONE[name]), "wb") as fh:
                 fh.write(pdf_bytes)
@@ -66,7 +78,12 @@ def main():
     pdf_path = os.path.join(outdir, "small-wonders-coloring-book.pdf")
     with open(pdf_path, "wb") as fh:
         writer.write(fh)
+    scenes.add_metadata({"/Title": "Small Wonders - Inked Scenes"})
+    scene_path = os.path.join(outdir, "inked-scenes.pdf")
+    with open(scene_path, "wb") as fh:
+        scenes.write(fh)
     print(f"\n{len(PAGES)} pages -> {pdf_path}")
+    print(f"{len(SCENES)} scenes -> {scene_path}")
 
 
 if __name__ == "__main__":

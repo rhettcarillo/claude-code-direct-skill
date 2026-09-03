@@ -1,3 +1,7 @@
 # Per-page rasters are regenerable: `python3 build.py out`
 out/*.png
 __pycache__/
+node_modules/
+qa/
+slide-*.jpg
+*.pdf.tmp
