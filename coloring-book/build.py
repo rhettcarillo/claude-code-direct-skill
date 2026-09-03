@@ -17,6 +17,7 @@ from pypdf import PdfWriter
 import pages_a
 import pages_b
 import pages_c
+import pages_d
 
 PAGES = [
     ("01_cover", "Cover", pages_a.cover),
@@ -35,7 +36,11 @@ PAGES = [
     ("14_tortoise", "Slow and steady", pages_c.tortoise),
     ("15_big_tree", "The old tree", pages_c.big_tree),
     ("16_draw_your_own", "Draw your own", pages_c.draw_your_own),
+    ("17_popcorn_shop", "Popcorn shop", pages_d.popcorn_shop),
 ]
+
+# Pages that also get their own single-page PDF, for printing on their own.
+STANDALONE = {"17_popcorn_shop": "popcorn-shop-coloring-page.pdf"}
 
 
 def main():
@@ -51,6 +56,9 @@ def main():
                          write_to=os.path.join(outdir, name + ".png"))
         pdf_bytes = cairosvg.svg2pdf(bytestring=svg.encode())
         writer.append(io.BytesIO(pdf_bytes))
+        if name in STANDALONE:
+            with open(os.path.join(outdir, STANDALONE[name]), "wb") as fh:
+                fh.write(pdf_bytes)
         print(f"  {name:22s} {title}")
 
     writer.add_metadata({"/Title": "Small Wonders - A Coloring Book",

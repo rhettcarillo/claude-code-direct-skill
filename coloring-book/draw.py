@@ -365,3 +365,50 @@ def svg_page(body):
             f'viewBox="0 0 {PAGE_W} {PAGE_H}">'
             f'<rect width="{PAGE_W}" height="{PAGE_H}" fill="#ffffff"/>'
             + "".join(body) + '</svg>')
+
+
+# --------------------------------------------------- fluffy / popped shapes
+
+def bumpy_circle(cx, cy, R, bumps, samples=260, a0=None, a1=None):
+    """Outline of a circle unioned with a list of (x, y, r) bumps.
+
+    Sampled along rays from the centre, so overlapping bumps merge into one
+    silhouette with no interior lines - which is what "fluffy" needs when
+    nothing is filled.
+    """
+    partial = a0 is not None and a1 is not None
+    if partial:
+        b0 = math.radians(a0)
+        b1 = math.radians(a1)
+        while b1 <= b0:
+            b1 += 2 * math.pi
+    pts = []
+    for i in range(samples + (1 if partial else 0)):
+        if partial:
+            t = b0 + (b1 - b0) * i / samples
+        else:
+            t = 2 * math.pi * i / samples
+        ux, uy = math.cos(t), math.sin(t)
+        r = R
+        for (bx, by, br) in bumps:
+            ex, ey = bx - cx, by - cy
+            b = ux * ex + uy * ey
+            c = ex * ex + ey * ey - br * br
+            disc = b * b - c
+            if disc > 0:
+                s = b + math.sqrt(disc)
+                if s > r:
+                    r = s
+        pts.append((cx + r * ux, cy + r * uy))
+    d = "M " + " L ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+    return d if partial else d + " Z"
+
+
+def popcorn(cx, cy, r, n=5, phase=0.0, w=None):
+    """One popped kernel: a small core with n lobes around it."""
+    w = W_MAIN if w is None else w
+    bumps = []
+    for i in range(n):
+        a = 2 * math.pi * i / n + phase
+        bumps.append((cx + r * 0.48 * math.cos(a), cy + r * 0.48 * math.sin(a), r * 0.53))
+    return path(bumpy_circle(cx, cy, r * 0.40, bumps, samples=150), w)
