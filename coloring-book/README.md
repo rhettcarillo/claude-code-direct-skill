@@ -47,6 +47,17 @@ That regenerates every SVG and PNG, the combined PDF, and the standalone page PD
 - `pages_a.py`, `pages_b.py`, `pages_c.py`, `pages_d.py` — one function per page.
 - `build.py` — renders everything and stitches the PDF.
 
+## Two drawing styles
+
+Pages 1-16 are clean geometric line art: unfilled outlines, layered weights, a decorative
+border, and a captioned subject on white.
+
+Page 17 is a packed inked scene, closer to how sticker-style kawaii coloring pages are
+drawn. `pages_d.py` carries its own small toolkit for that: `wpoly`, `wcirc`, `wrect` and
+`wline` add a slight hand tremble by subdividing each segment and nudging the points
+sideways, and every shape takes a white fill so the scene can be built back to front with
+real occlusion.
+
 ## Changing a page
 
 Each page function returns an SVG string and takes no arguments, so you can iterate on one
@@ -76,9 +87,10 @@ Three conventions worth keeping:
   detail deliberate. `bumpy_circle()` takes an angle range for exactly this reason: the
   popcorn-shop character's head is drawn as a partial arc so the cap closes the top instead
   of the head outline showing through it.
-- **Foreground objects need the background drawn in segments.** The popcorn bucket on
-  page 17 stands in front of the counter, so the counter's lines are drawn outside an
-  x window rather than straight across.
+- **Give shapes a white fill when the scene is packed.** Most of the book is unfilled
+  outlines, so nothing can sit in front of anything else. Page 17 fills every shape white
+  instead, which lets objects overlap and occlude properly. The page is drawn strictly
+  back to front.
 
 ## License
 
